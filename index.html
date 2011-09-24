@@ -65,11 +65,13 @@ rect {
 
     <body>
         <script type="text/javascript">
-        function drawCountry(js) {
-            var bounds0 = d3.geo.bounds(js),
+        function drawCountry(js, i) {
+            var proj = d3.geo.mercator().scale(1).translate([0,0]),
+                path = d3.geo.path().projection(proj),
+                bounds0 = d3.geo.bounds(js),
                 bounds = bounds0.map(proj),
-                xscale = width/Math.abs(bounds[1][0] - bounds[0][0]),
-                yscale = (height * 0.9)/Math.abs(bounds[1][1] - bounds[0][1]),
+                xscale = cwidth/Math.abs(bounds[1][0] - bounds[0][0]),
+                yscale = (cheight - topm)/Math.abs(bounds[1][1] - bounds[0][1]),
                 scale = Math.min(xscale, yscale),
                 id = js.p.n.substring(0, 3), dx = 0, dy = 0;
 
@@ -82,21 +84,33 @@ rect {
                 dy = yscale * Math.abs(bounds[1][1] - bounds[0][1]) -
                     xscale * Math.abs(bounds[1][1] - bounds[0][1]);
             }
+
+            var container = svg.append("svg:g"),
+                canvas = container.append("svg:g"),
+                lab = canvas.append("svg:g").attr("height", topm),
+                map = canvas.append("svg:g").attr("height", height - topm)
+                    .attr("transform", "translate(0," + topm + ")");
+
+            container.attr("transform", "translate(" +
+                        ((i % xnum) * cwidth) + "," +
+                        (Math.floor(i / xnum) * cheight) + ")")
+                .attr("width", cwidth)
+                .attr("height", cheight);
             canvas.attr("transform", "translate(" + dx/2 + "," + dy/2 + ")");
 
             defs.append("svg:pattern")
                 .attr("id", id)
-                .attr("width", width)
-                .attr("height", height)
+                .attr("width", "100%")
+                .attr("height", "100%")
                 .append("svg:rect")
-                .attr("y", js.p.d * height)
+                .attr("y", (cheight - topm) * (1 - js.p.d))
                 .attr("width", "100%")
                 .attr("height", "100%")
                 .attr("fill", "orange");
 
             lab.append("svg:text").classed("title", true)
-                .attr("y", topm/2 + dy/2)
-                .attr("x", width/2 - dx/2)
+                .attr("y", topm/2)
+                .attr("x", cwidth/2 - dx/2)
                 .attr("text-anchor", "middle")
                 .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 + "%");
             map.selectAll("path")
@@ -106,23 +120,22 @@ rect {
                 .attr("fill", "url(#" + id + ")");
         }
 
-        var proj = d3.geo.mercator().scale(1).translate([0,0]),
-            path = d3.geo.path().projection(proj),
-            margin = 25, topm = 70,
+        var margin = 25, topm = 70,
             width = window.innerWidth - margin,
             height = window.innerHeight - margin,
+            xnum = 6, ynum = 4,
+            cwidth = width / xnum,
+            cheight = (height - topm) / ynum,
             svg = d3.select("body")
                 .append("svg:svg")
                 .attr("height", height)
                 .attr("width", width),
-            defs = svg.append("svg:defs"),
-            canvas = svg.append("svg:g"),
-            lab = canvas.append("svg:g").attr("height", topm),
-            map = canvas.append("svg:g").attr("height", height - topm)
-                .attr("transform", "translate(0," + topm + ")");
+            defs = svg.append("svg:defs");
 
             d3.json("countries.geojson", function(json) {
-                drawCountry(json.features[0]);
+                $.each(json.features, function(i, d) {
+                    drawCountry(d, i);
+                });
             });
         </script>
     </body>
