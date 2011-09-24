@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Disparity between income and GDP per capita</title>
+        <script type="text/javascript" src="https://raw.github.com/mbostock/d3/master/d3.min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/mbostock/d3/master/d3.geo.min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/mbostock/d3/master/d3.layout.min.js"></script>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.2.min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/bigmlcom/tipsy/master/src/javascripts/jquery.tipsy.js"></script>
+        <style type="text/css"> 
+.tipsy {
+  padding: 5px;
+  font-size: 12px;
+  font-family: "URW Gothic L", sans;
+  position: absolute;
+  z-index: 100000;
+}
+
+.tipsy-inner {
+  padding: 5px 8px 4px 8px;
+  background-color: #000;
+  color: #eee;
+  max-width: 200px;
+  text-align: center;
+}
+
+.tipsy-inner {
+  border-radius: 3px;
+  -moz-border-radius:3px;
+  -webkit-border-radius:3px;
+}
+
+.tipsy-arrow {
+  position: absolute;
+  width: 9px;
+  height: 5px;
+}
+
+.tipsy-sw .tipsy-arrow { bottom: 0px; left: 10px; }
+.tipsy-se .tipsy-arrow { bottom: 0px; right: 10px; }
+.tipsy-nw .tipsy-arrow { top: 0px; left: 10px; }
+.tipsy-ne .tipsy-arrow { top: 0px; right: 10px; }
+
+body {
+  background-color: #faf5df;
+}
+text {
+  font-size: 12px;
+  font-family: "Sawasdee", "URW Gothic L", sans;
+  text-rendering: optimizeLegibility;
+}
+text.title {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+path {
+  stroke: #222;
+}
+rect {
+  stroke: #222;
+}
+        </style>
+    </head>
+
+    <body>
+        <script type="text/javascript">
+        function drawCountry(js) {
+            var bounds0 = d3.geo.bounds(js),
+                bounds = bounds0.map(proj),
+                xscale = width/Math.abs(bounds[1][0] - bounds[0][0]),
+                yscale = (height * 0.9)/Math.abs(bounds[1][1] - bounds[0][1]),
+                scale = Math.min(xscale, yscale),
+                id = js.p.n.substring(0, 3), dx = 0, dy = 0;
+
+            proj.scale(scale);
+            proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
+            if(xscale > yscale) {
+                dx = xscale * Math.abs(bounds[1][0] - bounds[0][0]) -
+                    yscale * Math.abs(bounds[1][0] - bounds[0][0]);
+            } else {
+                dy = yscale * Math.abs(bounds[1][1] - bounds[0][1]) -
+                    xscale * Math.abs(bounds[1][1] - bounds[0][1]);
+            }
+            canvas.attr("transform", "translate(" + dx/2 + "," + dy/2 + ")");
+
+            defs.append("svg:pattern")
+                .attr("id", id)
+                .attr("width", width)
+                .attr("height", height)
+                .append("svg:rect")
+                .attr("y", js.p.d * height)
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("fill", "orange");
+
+            lab.append("svg:text").classed("title", true)
+                .attr("y", topm/2 + dy/2)
+                .attr("x", width/2 - dx/2)
+                .attr("text-anchor", "middle")
+                .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 + "%");
+            map.selectAll("path")
+                .data([js])
+                .enter().append("svg:path")
+                .attr("d", path)
+                .attr("fill", "url(#" + id + ")");
+        }
+
+        var proj = d3.geo.mercator().scale(1).translate([0,0]),
+            path = d3.geo.path().projection(proj),
+            margin = 25, topm = 70,
+            width = window.innerWidth - margin,
+            height = window.innerHeight - margin,
+            svg = d3.select("body")
+                .append("svg:svg")
+                .attr("height", height)
+                .attr("width", width),
+            defs = svg.append("svg:defs"),
+            canvas = svg.append("svg:g"),
+            lab = canvas.append("svg:g").attr("height", topm),
+            map = canvas.append("svg:g").attr("height", height - topm)
+                .attr("transform", "translate(0," + topm + ")");
+
+            d3.json("countries.geojson", function(json) {
+                drawCountry(json.features[0]);
+            });
+        </script>
+    </body>
+</html>
