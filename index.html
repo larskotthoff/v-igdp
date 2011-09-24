@@ -133,6 +133,7 @@ rect {
             defs = svg.append("svg:defs");
 
             d3.json("countries.geojson", function(json) {
+                json.features.sort(function(a, b) { return a.p.d - b.p.d; });
                 $.each(json.features, function(i, d) {
                     drawCountry(d, i);
                 });
