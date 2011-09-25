@@ -49,12 +49,23 @@ text {
   font-family: "Sawasdee", "URW Gothic L", sans;
   text-rendering: optimizeLegibility;
 }
+text.label {
+  font-size: 18px;
+}
 text.title {
   font-size: 24px;
   font-weight: bold;
 }
 
+.axis {
+  fill: none;
+  stroke: #222;
+}
+
 path {
+  stroke: #222;
+}
+line {
   stroke: #222;
 }
 rect {
@@ -65,17 +76,16 @@ rect {
 
     <body>
         <script type="text/javascript">
-        function drawCountry(js, i) {
+        function drawCountry(js) {
             var proj = d3.geo.mercator().scale(1).translate([0,0]),
                 path = d3.geo.path().projection(proj),
                 bounds0 = d3.geo.bounds(js),
                 bounds = bounds0.map(proj),
-                xscale = cwidth/Math.abs(bounds[1][0] - bounds[0][0]),
-                yscale = (cheight - topm)/Math.abs(bounds[1][1] - bounds[0][1]),
-                scale = Math.min(xscale, yscale),
-                id = js.p.n.substring(0, 3), dx = 0, dy = 0;
+                xscale = (0.7*width-margin)/Math.abs(bounds[1][0] - bounds[0][0]),
+                yscale = (height-5*margin)/Math.abs(bounds[1][1] - bounds[0][1]),
+                pscale = Math.min(xscale, yscale);
 
-            proj.scale(scale);
+            proj.scale(pscale);
             proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
             if(xscale > yscale) {
                 dx = xscale * Math.abs(bounds[1][0] - bounds[0][0]) -
@@ -84,59 +94,108 @@ rect {
                 dy = yscale * Math.abs(bounds[1][1] - bounds[0][1]) -
                     xscale * Math.abs(bounds[1][1] - bounds[0][1]);
             }
-
-            var container = svg.append("svg:g"),
-                canvas = container.append("svg:g"),
-                lab = canvas.append("svg:g").attr("height", topm),
-                map = canvas.append("svg:g").attr("height", height - topm)
-                    .attr("transform", "translate(0," + topm + ")");
-
-            container.attr("transform", "translate(" +
-                        ((i % xnum) * cwidth) + "," +
-                        (Math.floor(i / xnum) * cheight) + ")")
-                .attr("width", cwidth)
-                .attr("height", cheight);
-            canvas.attr("transform", "translate(" + dx/2 + "," + dy/2 + ")");
-
-            defs.append("svg:pattern")
-                .attr("id", id)
-                .attr("width", "100%")
-                .attr("height", "100%")
-                .append("svg:rect")
-                .attr("y", (cheight - topm) * (1 - js.p.d))
-                .attr("width", "100%")
-                .attr("height", "100%")
-                .attr("fill", "orange");
-
-            lab.append("svg:text").classed("title", true)
-                .attr("y", topm/2)
-                .attr("x", cwidth/2 - dx/2)
+            map.selectAll("text").remove();
+            map.append("svg:text")
+                .attr("y", -10)
                 .attr("text-anchor", "middle")
+                .classed("title", true)
                 .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 + "%");
+            map.selectAll("path").remove();
             map.selectAll("path")
                 .data([js])
                 .enter().append("svg:path")
-                .attr("d", path)
-                .attr("fill", "url(#" + id + ")");
+                .attr("fill", cscale(js.p.d))
+                .attr("d", path);
         }
 
-        var margin = 25, topm = 70,
+        var margin = 25,
             width = window.innerWidth - margin,
             height = window.innerHeight - margin,
-            xnum = 6, ynum = 4,
-            cwidth = width / xnum,
-            cheight = (height - topm) / ynum,
+            cscale = d3.scale.linear().domain([0, 1])
+                .range(["white", "orange"]),
             svg = d3.select("body")
                 .append("svg:svg")
                 .attr("height", height)
                 .attr("width", width),
-            defs = svg.append("svg:defs");
+            defs = svg.append("svg:defs"),
+            canvas = svg.append("svg:g").attr("height", height - 5*margin)
+                .attr("transform", "translate("+margin+","+3*margin+")"),
+            clist = canvas.append("svg:g").attr("width", "30%"),
+            map = canvas.append("svg:g")
+                    .attr("width", "70%")
+                    .attr("transform", "translate(" +
+                            (0.3 * window.innerWidth - margin) + "," +
+                            margin + ")");
+
+            var grad = defs.append("svg:linearGradient")
+                .attr("id", "grad")
+                .attr("x1", "100%")
+                .attr("x2", "100%")
+                .attr("y1", "100%")
+                .attr("y2", "0%")
+                .attr("spreadMethod", "pad");
+            grad.append("svg:stop")
+                .attr("offset", "0%")
+                .attr("stop-color", "white");
+            grad.append("svg:stop")
+                .attr("offset", "100%")
+                .attr("stop-color", "orange");
+
+            svg.append("svg:text")
+                .classed("title", true)
+                .attr("text-anchor", "start")
+                .attr("x", 1.5*margin)
+                .attr("y", 1.5*margin)
+                .text("Disparity between income and GDP per capita");
+            svg.append("svg:text")
+                .attr("text-anchor", "start")
+                .attr("y", height-5)
+                .text("GDP data from IMF for 2005, average income from http://www.worldsalaries.org");
+            svg.append("svg:text")
+                .attr("text-anchor", "end")
+                .attr("x", width)
+                .attr("y", height-5)
+                .text("Lars Kotthoff 2011");
+
+            var scale = d3.scale.linear().domain([0, 100])
+                    .range([height - 5*margin, 0]),
+                axis = d3.svg.axis().scale(scale).ticks(10)
+                    .orient("left");
+            clist.append("svg:rect")
+                .attr("fill", "url(#grad)")
+                .attr("x", 30)
+                .attr("width", 30)
+                .attr("height", height - 5*margin);
+            clist.append("svg:g")
+                .attr("transform", "translate(30,0)")
+                .classed("axis", true)
+                .call(axis);
 
             d3.json("countries.geojson", function(json) {
-                json.features.sort(function(a, b) { return a.p.d - b.p.d; });
-                $.each(json.features, function(i, d) {
-                    drawCountry(d, i);
-                });
+                json.features.sort(function(a, b) { return b.p.d - a.p.d; });
+                clist.selectAll("text.label")
+                    .data(json.features).enter()
+                    .append("svg:text")
+                    .classed("label", true)
+                    .attr("transform", function(d, i) {
+                            return "translate(100," + (i * 30 + 5) + ")";
+                        })
+                    .text(function(d) { return d.p.n; })
+                    .on("mouseover", function(d) {
+                            drawCountry(d);
+                        });
+                var l = d3.svg.line();
+                clist.selectAll("path.pointer")
+                    .data(json.features).enter()
+                    .append("svg:path")
+                    .classed("pointer", true)
+                    .attr("fill", "none")
+                    .attr("d", function(d, i) {
+                            var s = [25, scale(d.p.d * 100)],
+                                m = [65, scale(d.p.d * 100)],
+                                e = [95, i * 30];
+                            return l([s, m, e]);
+                        });
             });
         </script>
     </body>
