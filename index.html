@@ -6,41 +6,7 @@
         <script type="text/javascript" src="https://raw.github.com/mbostock/d3/master/d3.geo.min.js"></script>
         <script type="text/javascript" src="https://raw.github.com/mbostock/d3/master/d3.layout.min.js"></script>
         <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.2.min.js"></script>
-        <script type="text/javascript" src="https://raw.github.com/bigmlcom/tipsy/master/src/javascripts/jquery.tipsy.js"></script>
         <style type="text/css"> 
-.tipsy {
-  padding: 5px;
-  font-size: 12px;
-  font-family: "URW Gothic L", sans;
-  position: absolute;
-  z-index: 100000;
-}
-
-.tipsy-inner {
-  padding: 5px 8px 4px 8px;
-  background-color: #000;
-  color: #eee;
-  max-width: 200px;
-  text-align: center;
-}
-
-.tipsy-inner {
-  border-radius: 3px;
-  -moz-border-radius:3px;
-  -webkit-border-radius:3px;
-}
-
-.tipsy-arrow {
-  position: absolute;
-  width: 9px;
-  height: 5px;
-}
-
-.tipsy-sw .tipsy-arrow { bottom: 0px; left: 10px; }
-.tipsy-se .tipsy-arrow { bottom: 0px; right: 10px; }
-.tipsy-nw .tipsy-arrow { top: 0px; left: 10px; }
-.tipsy-ne .tipsy-arrow { top: 0px; right: 10px; }
-
 body {
   background-color: #faf5df;
 }
@@ -51,6 +17,9 @@ text {
 }
 text.label {
   font-size: 18px;
+}
+text.expl {
+  font-size: 16px;
 }
 text.title {
   font-size: 24px;
@@ -97,9 +66,9 @@ rect {
             map.selectAll("text").remove();
             map.append("svg:text")
                 .attr("y", -10)
-                .attr("text-anchor", "middle")
                 .classed("title", true)
-                .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 + "%");
+                .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 +
+                        "% of GDP per capita is income");
             map.selectAll("path").remove();
             map.selectAll("path")
                 .data([js])
@@ -170,6 +139,10 @@ rect {
                 .attr("transform", "translate(30,0)")
                 .classed("axis", true)
                 .call(axis);
+            clist.append("svg:text")
+                .classed("expl", true)
+                .attr("transform", "translate(0," + (height - 4*margin) + ")")
+                .text("% of GDP per capita is income")
 
             d3.json("countries.geojson", function(json) {
                 json.features.sort(function(a, b) { return b.p.d - a.p.d; });
