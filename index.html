@@ -25,6 +25,9 @@ text.title {
   font-size: 24px;
   font-weight: bold;
 }
+text.active {
+  fill: #dd2f00;
+}
 
 .axis {
   fill: none;
@@ -45,36 +48,35 @@ rect {
 
     <body>
         <script type="text/javascript">
-        function drawCountry(js) {
-            var proj = d3.geo.mercator().scale(1).translate([0,0]),
+        function updateMap(js) {
+            var proj = d3.geo.equirectangular().scale(1).translate([0,0]),
                 path = d3.geo.path().projection(proj),
                 bounds0 = d3.geo.bounds(js),
                 bounds = bounds0.map(proj),
+                dx = dy = 0,
                 xscale = (0.7*width-margin)/Math.abs(bounds[1][0] - bounds[0][0]),
                 yscale = (height-5*margin)/Math.abs(bounds[1][1] - bounds[0][1]),
                 pscale = Math.min(xscale, yscale);
 
             proj.scale(pscale);
             proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
-            if(xscale > yscale) {
-                dx = xscale * Math.abs(bounds[1][0] - bounds[0][0]) -
-                    yscale * Math.abs(bounds[1][0] - bounds[0][0]);
+            if(map.selectAll("path").empty()) {
+                map.selectAll("path")
+                    .data(js.features).enter()
+                    .append("svg:path")
+                    .attr("fill", "none")
+                    .attr("d", path);
             } else {
-                dy = yscale * Math.abs(bounds[1][1] - bounds[0][1]) -
-                    xscale * Math.abs(bounds[1][1] - bounds[0][1]);
+                map.selectAll("path").attr("d", path);
+                map.selectAll("text").remove();
+                map.append("svg:text")
+                    .attr("y", -10)
+                    .classed("title", true)
+                    .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 +
+                            "% of GDP per capita is income");
+                map.selectAll("path").data([js], function(d) { return d.p.n; })
+                    .attr("fill", cscale(js.p.d));
             }
-            map.selectAll("text").remove();
-            map.append("svg:text")
-                .attr("y", -10)
-                .classed("title", true)
-                .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 +
-                        "% of GDP per capita is income");
-            map.selectAll("path").remove();
-            map.selectAll("path")
-                .data([js])
-                .enter().append("svg:path")
-                .attr("fill", cscale(js.p.d))
-                .attr("d", path);
         }
 
         var margin = 25,
@@ -155,7 +157,9 @@ rect {
                         })
                     .text(function(d) { return d.p.n; })
                     .on("mouseover", function(d) {
-                            drawCountry(d);
+                            d3.selectAll(".active").classed("active", false);
+                            d3.select(d3.event.target).classed("active", true);
+                            updateMap(d);
                         });
                 var l = d3.svg.line();
                 clist.selectAll("path.pointer")
@@ -169,6 +173,7 @@ rect {
                                 e = [95, i * 30];
                             return l([s, m, e]);
                         });
+                updateMap(json);
             });
         </script>
     </body>
