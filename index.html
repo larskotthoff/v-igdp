@@ -49,25 +49,23 @@ rect {
     <body>
         <script type="text/javascript">
         function updateMap(js) {
-            var proj = d3.geo.equirectangular().scale(1).translate([0,0]),
-                path = d3.geo.path().projection(proj),
+            var tproj = d3.geo.equirectangular().scale(1).translate([0,0]),
                 bounds0 = d3.geo.bounds(js),
-                bounds = bounds0.map(proj),
+                bounds = bounds0.map(tproj),
                 dx = dy = 0,
                 xscale = (0.7*width-margin)/Math.abs(bounds[1][0] - bounds[0][0]),
                 yscale = (height-5*margin)/Math.abs(bounds[1][1] - bounds[0][1]),
                 pscale = Math.min(xscale, yscale);
 
-            proj.scale(pscale);
-            proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
             if(map.selectAll("path").empty()) {
+                proj.scale(pscale);
+                proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
                 map.selectAll("path")
                     .data(js.features).enter()
                     .append("svg:path")
                     .attr("fill", "none")
                     .attr("d", path);
             } else {
-                map.selectAll("path").attr("d", path);
                 map.selectAll("text").remove();
                 map.append("svg:text")
                     .attr("y", -10)
@@ -76,6 +74,20 @@ rect {
                             "% of GDP per capita is income");
                 map.selectAll("path").data([js], function(d) { return d.p.n; })
                     .attr("fill", cscale(js.p.d));
+                var opd = map.selectAll("path").each(function(d) {
+                        return path(d3.select(this).attr("d"));
+                    });
+                console.log(opd);
+                proj.scale(pscale);
+                proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
+                var npd = map.selectAll("path").each(function(d) {
+                        return path(d3.select(this).attr("d"));
+                    });
+                map.selectAll("path")
+                    .transition().duration(1000)
+                    .attrTween("d", function() {
+                            return d3.interpolateObject(opd, npd);
+                        });
             }
         }
 
@@ -84,6 +96,8 @@ rect {
             height = window.innerHeight - margin,
             cscale = d3.scale.linear().domain([0, 1])
                 .range(["white", "orange"]),
+            proj = d3.geo.equirectangular().scale(1).translate([0,0]),
+            path = d3.geo.path().projection(proj),
             svg = d3.select("body")
                 .append("svg:svg")
                 .attr("height", height)
@@ -98,83 +112,83 @@ rect {
                             (0.3 * window.innerWidth - margin) + "," +
                             margin + ")");
 
-            var grad = defs.append("svg:linearGradient")
-                .attr("id", "grad")
-                .attr("x1", "100%")
-                .attr("x2", "100%")
-                .attr("y1", "100%")
-                .attr("y2", "0%")
-                .attr("spreadMethod", "pad");
-            grad.append("svg:stop")
-                .attr("offset", "0%")
-                .attr("stop-color", "white");
-            grad.append("svg:stop")
-                .attr("offset", "100%")
-                .attr("stop-color", "orange");
+        var grad = defs.append("svg:linearGradient")
+            .attr("id", "grad")
+            .attr("x1", "100%")
+            .attr("x2", "100%")
+            .attr("y1", "100%")
+            .attr("y2", "0%")
+            .attr("spreadMethod", "pad");
+        grad.append("svg:stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "white");
+        grad.append("svg:stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "orange");
 
-            svg.append("svg:text")
-                .classed("title", true)
-                .attr("text-anchor", "start")
-                .attr("x", 1.5*margin)
-                .attr("y", 1.5*margin)
-                .text("Disparity between income and GDP per capita");
-            svg.append("svg:text")
-                .attr("text-anchor", "start")
-                .attr("y", height-5)
-                .text("GDP data from IMF for 2005, average income from http://www.worldsalaries.org");
-            svg.append("svg:text")
-                .attr("text-anchor", "end")
-                .attr("x", width)
-                .attr("y", height-5)
-                .text("Lars Kotthoff 2011");
+        svg.append("svg:text")
+            .classed("title", true)
+            .attr("text-anchor", "start")
+            .attr("x", 1.5*margin)
+            .attr("y", 1.5*margin)
+            .text("Disparity between income and GDP per capita");
+        svg.append("svg:text")
+            .attr("text-anchor", "start")
+            .attr("y", height-5)
+            .text("GDP data from IMF for 2005, average income from http://www.worldsalaries.org");
+        svg.append("svg:text")
+            .attr("text-anchor", "end")
+            .attr("x", width)
+            .attr("y", height-5)
+            .text("Lars Kotthoff 2011");
 
-            var scale = d3.scale.linear().domain([0, 100])
-                    .range([height - 5*margin, 0]),
-                axis = d3.svg.axis().scale(scale).ticks(10)
-                    .orient("left");
-            clist.append("svg:rect")
-                .attr("fill", "url(#grad)")
-                .attr("x", 30)
-                .attr("width", 30)
-                .attr("height", height - 5*margin);
-            clist.append("svg:g")
-                .attr("transform", "translate(30,0)")
-                .classed("axis", true)
-                .call(axis);
-            clist.append("svg:text")
-                .classed("expl", true)
-                .attr("transform", "translate(0," + (height - 4*margin) + ")")
-                .text("% of GDP per capita is income")
+        var scale = d3.scale.linear().domain([0, 100])
+                .range([height - 5*margin, 0]),
+            axis = d3.svg.axis().scale(scale).ticks(10)
+                .orient("left");
+        clist.append("svg:rect")
+            .attr("fill", "url(#grad)")
+            .attr("x", 30)
+            .attr("width", 30)
+            .attr("height", height - 5*margin);
+        clist.append("svg:g")
+            .attr("transform", "translate(30,0)")
+            .classed("axis", true)
+            .call(axis);
+        clist.append("svg:text")
+            .classed("expl", true)
+            .attr("transform", "translate(0," + (height - 4*margin) + ")")
+            .text("% of GDP per capita is income")
 
-            d3.json("countries.geojson", function(json) {
-                json.features.sort(function(a, b) { return b.p.d - a.p.d; });
-                clist.selectAll("text.label")
-                    .data(json.features).enter()
-                    .append("svg:text")
-                    .classed("label", true)
-                    .attr("transform", function(d, i) {
-                            return "translate(100," + (i * 30 + 5) + ")";
-                        })
-                    .text(function(d) { return d.p.n; })
-                    .on("mouseover", function(d) {
-                            d3.selectAll(".active").classed("active", false);
-                            d3.select(d3.event.target).classed("active", true);
-                            updateMap(d);
-                        });
-                var l = d3.svg.line();
-                clist.selectAll("path.pointer")
-                    .data(json.features).enter()
-                    .append("svg:path")
-                    .classed("pointer", true)
-                    .attr("fill", "none")
-                    .attr("d", function(d, i) {
-                            var s = [25, scale(d.p.d * 100)],
-                                m = [65, scale(d.p.d * 100)],
-                                e = [95, i * 30];
-                            return l([s, m, e]);
-                        });
-                updateMap(json);
-            });
+        d3.json("countries.geojson", function(json) {
+            json.features.sort(function(a, b) { return b.p.d - a.p.d; });
+            clist.selectAll("text.label")
+                .data(json.features).enter()
+                .append("svg:text")
+                .classed("label", true)
+                .attr("transform", function(d, i) {
+                        return "translate(100," + (i * 30 + 5) + ")";
+                    })
+                .text(function(d) { return d.p.n; })
+                .on("mouseover", function(d) {
+                        d3.selectAll(".active").classed("active", false);
+                        d3.select(d3.event.target).classed("active", true);
+                        updateMap(d);
+                    });
+            var l = d3.svg.line();
+            clist.selectAll("path.pointer")
+                .data(json.features).enter()
+                .append("svg:path")
+                .classed("pointer", true)
+                .attr("fill", "none")
+                .attr("d", function(d, i) {
+                        var s = [25, scale(d.p.d * 100)],
+                            m = [65, scale(d.p.d * 100)],
+                            e = [95, i * 30];
+                        return l([s, m, e]);
+                    });
+            updateMap(json);
+        });
         </script>
     </body>
 </html>
