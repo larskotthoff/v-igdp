@@ -11,17 +11,10 @@ f.each { |l|
 
 data = JSON.parse(STDIN.read)
 
-data["features"].delete_if { |f|
-    not disp.has_key?(f["properties"]["NAME"])
-}
 data["features"].each { |f|
-    f["properties"].delete_if { |k,v|
-        k != "NAME"
-    }
-}
-
-data["features"].each { |f|
-    f["properties"]["d"] = 1 - (disp[f["properties"]["NAME"]]/100)
+    if disp.has_key?(f["p"]["n"])
+        f["p"]["d"] = 1 - (disp[f["p"]["n"]]/100)
+    end
 }
 
 puts data.to_json

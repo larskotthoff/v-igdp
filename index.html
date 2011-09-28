@@ -52,12 +52,12 @@ rect {
             var tproj = d3.geo.equirectangular().scale(1).translate([0,0]),
                 bounds0 = d3.geo.bounds(js),
                 bounds = bounds0.map(tproj),
-                dx = dy = 0,
                 xscale = (0.7*width-margin)/Math.abs(bounds[1][0] - bounds[0][0]),
                 yscale = (height-5*margin)/Math.abs(bounds[1][1] - bounds[0][1]),
                 pscale = Math.min(xscale, yscale);
 
             if(map.selectAll("path").empty()) {
+                wscale = pscale;
                 proj.scale(pscale);
                 proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
                 map.selectAll("path")
@@ -72,22 +72,21 @@ rect {
                     .classed("title", true)
                     .text(js.p.n + ": " + Math.round(js.p.d * 1000)/10 +
                             "% of GDP per capita is income");
+                map.selectAll("path")
+                    .attr("fill", "none")
+                    .attr("stroke-width", 1);
                 map.selectAll("path").data([js], function(d) { return d.p.n; })
-                    .attr("fill", cscale(js.p.d));
-                var opd = map.selectAll("path").each(function(d) {
-                        return path(d3.select(this).attr("d"));
-                    });
-                console.log(opd);
-                proj.scale(pscale);
-                proj.translate(proj([-bounds0[0][0], -bounds0[1][1]]));
-                var npd = map.selectAll("path").each(function(d) {
-                        return path(d3.select(this).attr("d"));
-                    });
+                    .attr("fill", cscale(js.p.d))
+                    .attr("stroke-width", 2);
+                proj.scale(Math.min(wscale*5, pscale));
+                tproj.scale(Math.min(wscale*5, pscale));
+                var off = tproj([-bounds0[0][0], -bounds0[1][1]]),
+                    dx = pscale > wscale*7 ? off[0] + (0.2*width) : off[0],
+                    dy = pscale > wscale*7 ? off[1] + (0.3*height) : off[1];
+                proj.translate([dx, dy]);
                 map.selectAll("path")
                     .transition().duration(1000)
-                    .attrTween("d", function() {
-                            return d3.interpolateObject(opd, npd);
-                        });
+                    .attr("d", path);
             }
         }
 
@@ -98,6 +97,7 @@ rect {
                 .range(["white", "orange"]),
             proj = d3.geo.equirectangular().scale(1).translate([0,0]),
             path = d3.geo.path().projection(proj),
+            wscale = 0,
             svg = d3.select("body")
                 .append("svg:svg")
                 .attr("height", height)
@@ -110,7 +110,8 @@ rect {
                     .attr("width", "70%")
                     .attr("transform", "translate(" +
                             (0.3 * window.innerWidth - margin) + "," +
-                            margin + ")");
+                            margin + ")")
+                    .append("svg:g");
 
         var grad = defs.append("svg:linearGradient")
             .attr("id", "grad")
@@ -161,9 +162,11 @@ rect {
             .text("% of GDP per capita is income")
 
         d3.json("countries.geojson", function(json) {
-            json.features.sort(function(a, b) { return b.p.d - a.p.d; });
+            var countries = json.features.filter(function(d, i) {
+                    return d.p.d != null;
+                }).sort(function(a, b) { return b.p.d - a.p.d; });
             clist.selectAll("text.label")
-                .data(json.features).enter()
+                .data(countries).enter()
                 .append("svg:text")
                 .classed("label", true)
                 .attr("transform", function(d, i) {
@@ -177,7 +180,7 @@ rect {
                     });
             var l = d3.svg.line();
             clist.selectAll("path.pointer")
-                .data(json.features).enter()
+                .data(countries).enter()
                 .append("svg:path")
                 .classed("pointer", true)
                 .attr("fill", "none")
