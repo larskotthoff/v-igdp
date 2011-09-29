@@ -54,7 +54,7 @@ rect {
             var tproj = d3.geo.equirectangular().scale(1).translate([0,0]),
                 bounds0 = d3.geo.bounds(js),
                 bounds = bounds0.map(tproj),
-                xscale = (width-margin-clistw)/
+                xscale = (width-2*margin-clistw)/
                     Math.abs(bounds[1][0] - bounds[0][0]),
                 yscale = (height-5*margin)/
                     Math.abs(bounds[1][1] - bounds[0][1]),
@@ -95,8 +95,10 @@ rect {
                 proj.scale(Math.min(wscale*5, pscale));
                 tproj.scale(Math.min(wscale*5, pscale));
                 var off = tproj([-bounds0[0][0], -bounds0[1][1]]),
-                    dx = pscale > wscale*8 ? off[0] + (0.3*width) : off[0],
-                    dy = pscale > wscale*8 ? off[1] + (0.2*height) : off[1];
+                    other = tproj([-bounds0[1][0], -bounds0[0][1]]),
+                    len = [off[0] - other[0], off[1] - other[1]],
+                    dx = off[0] + (width - clistw - 2*margin)/2 - len[0]/2,
+                    dy = off[1] + (height - 7.5*margin)/2 - len[1]/2;
                 proj.translate([dx, dy]);
                 map.selectAll("path")
                     .transition().duration(1000)
