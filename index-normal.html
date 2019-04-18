@@ -5,7 +5,6 @@
         <script type="text/javascript" src="d3.min.js"></script>
         <script type="text/javascript" src="d3.geo.min.js"></script>
         <script type="text/javascript" src="d3.layout.min.js"></script>
-        <script type="text/javascript" src="d3.geom.min.js"></script>
         <script type="text/javascript" src="jquery-1.6.2.min.js"></script>
         <style type="text/css"> 
 body {
@@ -124,37 +123,11 @@ rect {
                 .attr("transform", "translate("+margin+","+3*margin+")"),
             clistw = 250,
             clist = canvas.append("svg:g").attr("width", clistw),
-            labels = [], links = [],
-            force = d3.layout.force()
-                .nodes(labels)
-                .links(links)
-                .gravity(0)
-                .friction(0.5)
-                .size([clistw, height - 5*margin]),
             label = canvas.append("svg:g")
                 .attr("transform", "translate("+clistw+",0)"),
             map = canvas.append("svg:svg")
                 .attr("x", clistw)
-                .append("svg:g"),
-            l = d3.svg.line();
-
-        force.on("tick", function() {
-            clist.selectAll("text.label")
-                .attr("x", function(d) { d.x = 100; return d.x; })
-                .attr("y", function(d, i) {
-                    if(d.y < 0) d.y = 0;
-                    if(d.y > height-5*margin) d.y = height-5*margin;
-                    if(i > 0 && d.y < labels[i-1].y) d.y = labels[i-1].y;
-                    return d.y;
-                });
-            clist.selectAll("path.pointer")
-                .attr("d", function(d, i) {
-                        var s = [25, scale(d.p.d * 100)],
-                            m = [65, scale(d.p.d * 100)],
-                            e = [labels[i].x - 5, labels[i].y - 5];
-                        return l([s, m, e]);
-                    });
-        });
+                .append("svg:g");
 
         var grad = defs.append("svg:linearGradient")
             .attr("id", "grad")
@@ -207,25 +180,22 @@ rect {
         d3.json("countries.geojson", function(json) {
             var countries = json.features.filter(function(d, i) {
                     return d.p.d != null;
-                    }).sort(function(a, b) { return b.p.d - a.p.d; });
-            $.each(countries, function(i, d) {
-                var n = {x: 100, y: scale(d.p.d * 100), t: d.p.n};
-                labels.push(n);
-                if(i > 0) links.push({source: labels[i-1], target: n});
-            });
+                    }).sort(function(a, b) { return b.p.d - a.p.d; }),
+                ch = (height - 5*margin) / (countries.length+1);
             clist.selectAll("text.label")
-                .data(labels).enter()
+                .data(countries).enter()
                 .append("svg:text")
                 .classed("label", true)
-                .attr("x", function(d) { return d.x })
-                .attr("y", function(d) { return d.y })
-                .text(function(d) { return d.t; })
-                .on("mouseover", function(d, i) {
+                .attr("transform", function(d, i) {
+                        return "translate(100," + ((i+1) * ch + 5) + ")";
+                    })
+                .text(function(d) { return d.p.n; })
+                .on("mouseover", function(d) {
                         d3.selectAll(".active").classed("active", false);
                         d3.select(d3.event.target).classed("active", true);
-                        updateMap(countries[i]);
+                        updateMap(d);
                     });
-            force.start();
+            var l = d3.svg.line();
             clist.selectAll("path.pointer")
                 .data(countries).enter()
                 .append("svg:path")
@@ -234,7 +204,7 @@ rect {
                 .attr("d", function(d, i) {
                         var s = [25, scale(d.p.d * 100)],
                             m = [65, scale(d.p.d * 100)],
-                            e = [95, labels[i].y];
+                            e = [95, (i+1) * ch];
                         return l([s, m, e]);
                     });
             updateMap(json);
